@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pyapi.fullname" . }}
+  labels:
+    {{- include "pyapi.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.http.portName }}
+      protocol: {{ .Values.http.protocol }}
+      name: http
+  selector:
+    {{- include "pyapi.selectorLabels" . | nindent 4 }}

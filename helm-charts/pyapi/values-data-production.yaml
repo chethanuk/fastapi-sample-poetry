@@ -1,0 +1,19 @@
+environment: production
+replicaCount: 1
+istio:
+  virtualService:
+    enabled: true
+
+consul:
+  host: http://consul.serving.data.production.internal
+vault:
+  host: http://vault.serving.data.production.internal
+
+livenessProbe:
+  enabled: true
+  
+readinessProbe:
+  enabled: true  
+
+autoscaling:
+  enabled: false  

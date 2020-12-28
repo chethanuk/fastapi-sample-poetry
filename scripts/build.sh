@@ -9,4 +9,5 @@ echo $CURRENT_DIR
 echo $BASE_DIR
 cd $BASE_DIR
 
-docker build --tag chethanuk/poetry:0.1 --file docker/Dockerfile . 
+poetry lock
+docker build --tag chethanuk/poetry:0.2 --file docker/Dockerfile --build-arg TEST_FAIL=50 . 

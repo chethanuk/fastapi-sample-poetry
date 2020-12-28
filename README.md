@@ -8,7 +8,7 @@
 - [Docker >= 17.05](https://www.python.org/downloads/release/python-381/)
 - [Python >= 3.7](https://www.python.org/downloads/release/python-381/)
 - [Poetry](https://github.com/python-poetry/poetry)
-
+- `python -m pip install -U virtualenv`
 
 ---
 **NOTE** - Run all commands from the project root

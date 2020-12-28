@@ -1,0 +1,17 @@
+{{- if .Values.istio.virtualService.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Chart.Name }}
+spec:
+  hosts:
+  - {{ .Chart.Name }}.serving.data.{{ .Values.environment }}.internal
+  gateways:
+  - istio-system/ingressgateway
+  http:
+  - route:
+    - destination:
+        host: {{ include "pyapi.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+        port:
+          number: {{ .Values.service.port }}
+{{ end }}

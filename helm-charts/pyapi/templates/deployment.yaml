@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pyapi.fullname" . }}
+  labels:
+    {{- include "pyapi.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pyapi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "pyapi.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pyapi.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
+      initContainers:
+      - name: install
+        image: hashicorp/consul-template
+        env:
+          - name: VAULT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: vault-secret
+                key: token
+        args:
+        - "-consul-addr"
+        - "{{.Values.consul.host}}:{{.Values.consul.port}}"
+        - "-vault-addr"
+        - "{{.Values.vault.host}}:{{.Values.vault.port}}"
+        - "-template"
+        - "/usr/app/templates/configuration.py:/usr/app/config/{{ .Values.environment }}.py"
+        - "-once"
+        volumeMounts:
+          - mountPath: /usr/app/templates
+            name: config-template-volume
+          - mountPath: /usr/app/config
+            name: config-pv-volume
+
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: {{ .Values.http.portName }}
+              containerPort: {{ .Values.http.port }}
+              protocol: {{ .Values.http.protocol }}
+          {{- if .Values.livenessProbe.enabled }}    
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path }}
+              port: {{ .Values.http.portName }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}              
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path }}
+              port: {{ .Values.http.portName }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}  
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+
+      {{- with .Values.nodeSelector }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+{{ include "affinity" . | indent 8}}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

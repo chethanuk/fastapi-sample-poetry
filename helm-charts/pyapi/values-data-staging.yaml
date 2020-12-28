@@ -1,0 +1,19 @@
+environment: staging
+replicaCount: 1
+istio:
+  virtualService:
+    enabled: true
+
+livenessProbe:
+  enabled: true
+  
+readinessProbe:
+  enabled: true  
+
+autoscaling:
+  enabled: false  
+
+consul:
+  host: http://consul.serving.data.staging.internal
+vault:
+  host: http://vault.serving.data.staging.internal  

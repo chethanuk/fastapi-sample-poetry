@@ -1,4 +1,11 @@
+# DO NOT Remove
+# app/config/config.py
+# app/config/
+__pycache__
 
+*pyc
+
+# Git
 .git
 .github
 .dockerignore

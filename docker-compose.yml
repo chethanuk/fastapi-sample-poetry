@@ -1,6 +1,6 @@
 version: "3.7"
 services:
   api:
-    image: chethanuk/poetry:0.1
+    image: chethanuk/poetry:0.2
     ports:
       - "8000:8000"

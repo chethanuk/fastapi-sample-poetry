@@ -1,0 +1,8 @@
+#!/usr/bin/python
+import os
+
+env = os.getenv('ENV', 'development')
+
+config = {
+    'env': {{ key "/rapido/dse-cloudsql/mysql/username" }}
+}
