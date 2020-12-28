@@ -11,6 +11,8 @@ spec:
   selector:
     matchLabels:
       {{- include "pyapi.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -29,6 +31,11 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
 
       initContainers:
+{{/*      - name: install*/}}
+{{/*        image: ubuntu:latest*/}}
+{{/*        # Just spin & wait forever*/}}
+{{/*        command: [ "/bin/bash", "-c", "--" ]*/}}
+{{/*        args: [ "while true; do sleep 30; done;" ] */}}
       - name: install
         image: hashicorp/consul-template
         env:
@@ -39,16 +46,17 @@ spec:
                 key: token
         args:
         - "-consul-addr"
-        - "{{.Values.consul.host}}:{{.Values.consul.port}}"
+        - "{{.Values.consul.host}}"
         - "-vault-addr"
-        - "{{.Values.vault.host}}:{{.Values.vault.port}}"
+        - "{{.Values.vault.host}}"
         - "-template"
-        - "/usr/app/templates/configuration.py:/usr/app/config/{{ .Values.environment }}.py"
+        - "/app/templates/config.py.template:/app/config/config.py"
         - "-once"
+        - "-log-level=trace"
         volumeMounts:
-          - mountPath: /usr/app/templates
+          - mountPath: /app/templates
             name: config-template-volume
-          - mountPath: /usr/app/config
+          - mountPath: /app/config
             name: config-pv-volume
 
       containers:
@@ -85,8 +93,24 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: PORT
+              value : {{ .Values.http.port | quote }}
+            - name: NODE_ENV
+              value : {{ .Values.environment }}
+          volumeMounts:
+            - mountPath: /app/templates
+              name: config-template-volume
+            - mountPath: /app/config/config.py
+              name: config-pv-volume
+              subPath: config.py
 
-
+      volumes:
+        - name: config-pv-volume
+          emptyDir: {}
+        - name: config-template-volume
+          configMap:
+            name: {{ include "pyapi.fullname" . }}-config
       {{- with .Values.nodeSelector }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       nodeSelector:

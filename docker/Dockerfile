@@ -1,7 +1,7 @@
-# Dockerfile
-# Uses multi-stage builds requiring Docker 17.05 or higher
+# Dockerfile Uses multi-stage builds requiring Docker 17.05 or higher
 # See https://docs.docker.com/develop/develop-images/multistage-build/
 
+######################### Python Shared Base Env ##########################
 # Creating a python base with shared environment variables
 FROM python:3.8.5-slim as python-base
 ENV PYTHONUNBUFFERED=1 \
@@ -20,7 +20,8 @@ ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
 ARG TEST_FAIL=50
 ENV TEST_FAIL_PERCENTAGE=${TEST_FAIL}
 
-# builder-base is used to build dependencies
+######################### Python Builder Base ##########################
+# Builder-base is used to build dependencies
 FROM python-base as builder-base
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
@@ -31,15 +32,14 @@ RUN apt-get update \
 ENV POETRY_VERSION=1.0.5
 RUN curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python
 
-# We copy our Python requirements here to cache them
-# and install only runtime deps using poetry
+# Copy Python requirements to cache and install only runtime deps using poetry
 WORKDIR $PYSETUP_PATH
 COPY ./poetry.lock ./pyproject.toml ./
 RUN poetry install --no-dev  # respects 
 
 
-# 'development' stage installs all dev deps and can be used to develop code.
-# For example using docker-compose to mount local volume under /app
+######################### Python Dev Stage ##########################
+# Dev -> Installs all dev deps
 FROM python-base as development
 ENV FASTAPI_ENV=development
 
@@ -63,6 +63,7 @@ ENTRYPOINT /docker-entrypoint.sh $0 $@
 CMD ["uvicorn", "--reload", "--host=0.0.0.0", "--port=8000", "main:app"]
 
 
+######################### Python Lint Test Stage ##########################
 # 'lint' stage runs black and isort
 # running in check mode means build will fail if any linting errors occur
 FROM development AS lint
@@ -79,6 +80,7 @@ RUN echo $TEST_FAIL_PERCENTAGE
 RUN coverage report --fail-under $TEST_FAIL_PERCENTAGE
 
 
+######################### Python Production Stage ##########################
 # 'production' stage uses the clean 'python-base' stage and copyies
 # in only our runtime deps that were installed in the 'builder-base'
 FROM python-base as production
@@ -88,6 +90,7 @@ COPY --from=builder-base $VENV_PATH $VENV_PATH
 COPY ./docker/gunicorn_conf.py /gunicorn_conf.py
 
 COPY ./docker/docker-entrypoint.sh /docker-entrypoint.sh
+# Remove the dev configs
 RUN chmod +x /docker-entrypoint.sh && rm -rf app/config/
 
 COPY ./app /app

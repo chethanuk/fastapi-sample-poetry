@@ -16,4 +16,4 @@ readinessProbe:
   enabled: true  
 
 autoscaling:
-  enabled: false  
+  enabled: true  
