@@ -12,6 +12,7 @@ htmlcov/
 .pytest_cache/
 .venv
 venv
+htmlbranch/
 
 .DS_Store
 .AppleDouble

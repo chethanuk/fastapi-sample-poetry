@@ -18,3 +18,4 @@ def test_update_item(testclient: TestClient):
     r = testclient.put("/items/1", json=data)
     assert r.status_code == 200, r.text
     assert r.json()["item_name"] == data["name"]
+    # assert r.json()["price"] == "0.38"
